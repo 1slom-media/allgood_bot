@@ -3,8 +3,8 @@ import { bot, startCommand, changeLanguageCommand, langCommand } from './bot.js'
 
 // Komandalar ro'yxatini sozlash
 bot.telegram.setMyCommands([
-  { command: 'start', description: 'Botni boshlash' },
-  { command: 'lang', description: 'Tilni o\'zgartirish' },
+  { command: 'start', description: 'Ботни бошлаш' },
+  { command: 'lang', description: 'Тилни ўзгартириш' },
 ]);
 
 // Komandalar

@@ -4,6 +4,8 @@ import mainMenu from "./mainMenu.js";
 import { userLanguages } from "../bot.js";
 import updateGoogleSheet from "./sheets.js";
 import { messagesRu, messagesUz } from "../utils/language.js";
+import requestType from "./requestType.js";
+import getFormattedDate from "../utils/formatedDate.js";
 
 const { WizardScene } = Scenes;
 const getLanguage = (ctx) => {
@@ -11,17 +13,29 @@ const getLanguage = (ctx) => {
   return userLanguages[userId] || "uz";
 };
 
-// 1. Foydalanuvchidan murojaatni olish
+// 1.Foydalanuvchidan requst Typeni olish
+const askRequestType = (ctx) => {
+  const language = getLanguage(ctx);
+  ctx.reply(
+    language === "uz" ? messagesUz.type : messagesRu.type,
+    requestType(language)
+  );
+  return ctx.wizard.next();
+};
+
+// 2. Foydalanuvchidan murojaatni olish
 const askRequest = (ctx) => {
   const language = getLanguage(ctx);
+  ctx.wizard.state.type = ctx.message.text;
   ctx.reply(
     language === "uz" ? messagesUz.writeQuestion : messagesRu.writeQuestion
   );
   return ctx.wizard.next();
 };
 
-// 2. Murojaatni saqlash va guruhga yuborish
+// 3. Murojaatni saqlash va guruhga yuborish
 const saveRequest = async (ctx) => {
+  const { type } = ctx.wizard.state;
   const requestText = ctx.message.text;
   const chatId = ctx.chat.id;
   const language = getLanguage(ctx);
@@ -53,11 +67,11 @@ const saveRequest = async (ctx) => {
 
   // Murojaatlarni saqlash uchun DBga yozish
   const query = `
-        INSERT INTO requests (user_chat_id, request_text, status_uz,status_ru)
-        VALUES ($1, $2, $3,$4)
+        INSERT INTO requests (user_chat_id, request_text, status_uz,status_ru,type)
+        VALUES ($1, $2, $3,$4,$5)
         RETURNING id;
       `;
-  const values = [chatId, requestText, "yuborilgan", "отправил"]; // Statusni belgilash
+  const values = [chatId, requestText, "юборилган", "отправил", type]; // Statusni belgilash
 
   try {
     // Murojaatni DBga yozish
@@ -65,13 +79,19 @@ const saveRequest = async (ctx) => {
     const requestId = res.rows[0].id; // Yangi murojaat ID sini olish
     await updateGoogleSheet(
       requestId,
-      "yuborilgan",
+      "юборилган",
       "отправил",
       userInfo,
-      requestText
+      requestText,
+      type
     );
 
-    ctx.reply(language === "uz" ? messagesUz.successQuestion : messagesRu.successQuestion, mainMenu(language));
+    ctx.reply(
+      language === "uz"
+        ? messagesUz.successQuestion
+        : messagesRu.successQuestion,
+      mainMenu(language)
+    );
 
     // Murojaatni guruhga yuborish
     const groupChatId = "-4541484236";
@@ -80,36 +100,30 @@ const saveRequest = async (ctx) => {
     const message =
       language === "uz"
         ? `
-  Yangi murojaat:
+  ${messagesUz[4]}
   ID: ${requestId}
-  Murojaatchi: ${first_name} ${last_name}
-  Aloqa uchun: ${phone_number}
-  Murojaat: ${requestText}
-  Status: yuborilgan
+  ${messagesUz[7]} ${type}
+  ${messagesUz[5]} ${first_name} ${last_name}
+  ${messagesUz[6]} ${phone_number}
+  ${messagesUz[0]} ${requestText}
+  ${messagesUz[8]} ${getFormattedDate()}
+  ${messagesUz[1]} юборилган
       `
         : `
-  Новый запрос:
+  ${messagesRu[4]}
   ID: ${requestId}
-  Отправитель: ${first_name} ${last_name}
-  Контактный номер: ${phone_number}
-  Запрос: ${requestText}
-  Статус: отправил
+  ${messagesRu[7]} ${type}
+  ${messagesRu[5]} ${first_name} ${last_name}
+  ${messagesRu[6]} ${phone_number}
+  ${messagesRu[0]} ${requestText}
+  ${messagesRu[8]} ${getFormattedDate()}
+  ${messagesRu[1]} отправил
       `;
-
-    const messageGroup = `
-  Yangi murojaat:
-  ID: ${requestId}
-  Murojaatchi: ${first_name} ${last_name}
-  Aloqa uchun: ${phone_number}
-  Murojaat: ${requestText}
-  Status: yuborilgan
-      `;
-
     // Inline tugma yaratish
     const inlineKeyboard = Markup.inlineKeyboard([
       [
         {
-          text: "Murojaatni ko'rish",
+          text: `${messagesUz.viewReq}`,
           url: `https://t.me/test_allgod_bot?start=view_${requestId}`,
         },
       ],
@@ -118,8 +132,8 @@ const saveRequest = async (ctx) => {
     ]);
 
     // Guruhga xabarni inline tugma bilan yuborish
-    await ctx.telegram.sendMessage(groupChatId, messageGroup, inlineKeyboard);
     await ctx.reply(message, mainMenu(language));
+    await ctx.telegram.sendMessage(groupChatId, message, inlineKeyboard);
   } catch (err) {
     console.error("Murojaatni saqlashda xatolik:", err);
     ctx.reply(
@@ -131,6 +145,11 @@ const saveRequest = async (ctx) => {
   return ctx.scene.leave();
 };
 // Murojaat sahnasini yaratish
-const requestScene = new WizardScene("request_scene", askRequest, saveRequest);
+const requestScene = new WizardScene(
+  "request_scene",
+  askRequestType,
+  askRequest,
+  saveRequest
+);
 
 export default requestScene;

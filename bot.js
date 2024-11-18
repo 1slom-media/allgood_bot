@@ -1,21 +1,23 @@
 import { Telegraf, Scenes, session } from "telegraf";
 import client from "./db/db.js";
 import userInfoWizard from "./functionalities/loginScene.js";
-import { messagesRu, messagesUz } from "./utils/language.js";
+import { messagesRu, messagesUz, statuses } from "./utils/language.js";
 import mainMenu from "./functionalities/mainMenu.js";
 import faqMenu from "./functionalities/faqMenu.js";
 import requestScene from "./functionalities/requestScene.js";
 import murojaatlarniKorish from "./functionalities/murojaatlarniKorish.js";
 import murojaatniTekshirishScene from "./functionalities/murojaatniTekshirishScene.js";
+import getFormattedDate from "./utils/formatedDate.js";
 
 // Bot tokenini kiritish
-const token = "7977660464:AAH6PswsH37TrYwzzGTP9Vj5PwyzwIMPgII";
+const token = "977660464:AAH6PswsH37TrYwzzGTP9Vj5PwyzwIMPgII";
 const bot = new Telegraf(token);
 
+// bazani tinglash va notif yuborish--------------------------------------------------------------------------------------------------
 client.connect();
 client.query("LISTEN schedule_update");
 client.on("notification", async (msg) => {
-  const ids = msg.payload.split(",");  // Bir nechta idlarni olish
+  const ids = msg.payload.split(","); // Bir nechta idlarni olish
 
   try {
     let messages = [];
@@ -50,7 +52,10 @@ client.on("notification", async (msg) => {
 *Поздравляем Вас\\!*  
 Вы успешно оформили рассрочку клиенту  
 *Заявка № ID* ${row.backend_application_id}  
-*Ссылка линк на pdf рассрочкага:* [pdf документ](https://pdf\\.allgoodnasiya\\.uz/${row.schedule_file.replace(/\./g, "\\.")})
+*Ссылка линк на pdf рассрочкага:* [pdf документ](https://pdf\\.allgoodnasiya\\.uz/${row.schedule_file.replace(
+            /\./g,
+            "\\."
+          )})
 `.trim();
 
           // Xabarlarni bir joyga to'plab yuborish
@@ -66,13 +71,12 @@ client.on("notification", async (msg) => {
       });
       console.log(`Xabar ${msg.chatId} guruhga yuborildi.`);
     }
-
   } catch (error) {
     console.error(`Bazaga so'rov yuborishda xatolik yuz berdi:`, error);
   }
 });
 
-// check register
+// check register---------------------------------------------------------------------------------------------------------------------
 const checkUserRegistered = async (chatId) => {
   const query = `SELECT * FROM users WHERE chat_id = $1;`;
   const values = [chatId];
@@ -95,12 +99,13 @@ const stage = new Scenes.Stage([
 bot.use(session());
 bot.use(stage.middleware());
 
+// language tanlash fuksiyasi----------------------------------------------------------------------------------------------------------
 const getLanguage = (ctx) => {
   const userId = ctx.from.id;
   return userLanguages[userId] || "uz"; // Default to Uzbek if no language is set
 };
 
-// Scene handlers
+// Scene handlers----------------------------------------------------------------------------------------------------------------------
 bot.hears([messagesUz.register, messagesRu.register], async (ctx) => {
   ctx.scene.enter("user_info_wizard");
 });
@@ -111,7 +116,7 @@ bot.hears([messagesUz.checkQuestion, messagesRu.checkQuestion], (ctx) => {
   ctx.scene.enter("murojaatni_tekshirish_scene");
 });
 
-// Tilni o'zgartirish uchun klaviatura
+// Tilni o'zgartirish uchun klaviatura--------------------------------------------------------------------------------------------------
 const languageKeyboard = {
   reply_markup: {
     inline_keyboard: [
@@ -121,7 +126,7 @@ const languageKeyboard = {
   },
 };
 
-// Botning boshlanishi
+// Botning boshlanishi-----------------------------------------------------------------------------------------------------------------
 const startCommand = async (ctx) => {
   const userId = ctx.from.id;
 
@@ -137,21 +142,22 @@ const startCommand = async (ctx) => {
   if (args[1] && args[1].startsWith("view_")) {
     const requestId = args[1].split("_")[1];
     await handleRequestView(ctx, requestId);
-  }else{
+  } else {
     // Foydalanuvchining ro'yxatdan o'tganligini tekshirish
     const chatId = ctx.chat.id;
     const isRegistered = await checkUserRegistered(chatId);
-  
+
     // Ro'yxatdan o'tgan foydalanuvchiga asosiy menyu
     await handleMainMenu(ctx, isRegistered, language);
-  } 
-
+  }
 };
 
+// request xolatini ko`rish -----------------------------------------------------------------------------------------------------------
 const handleRequestView = async (ctx, requestId) => {
   try {
     const language = getLanguage(ctx); // Foydalanuvchi tilini olish
-
+    const status_name_uz = statuses[0];
+    const status_name_ru = statuses[1];
     // So'rovni yangilash uchun SQL so'rovini yozish
     const updateStatusQuery = `
       UPDATE requests 
@@ -159,30 +165,40 @@ const handleRequestView = async (ctx, requestId) => {
       WHERE id = $3 
       RETURNING *;
     `;
-    const updateValues = ["Ko'rildi", "Просмотрено", requestId];
+    const updateValues = [status_name_uz, status_name_ru, requestId];
     const updateRes = await client.query(updateStatusQuery, updateValues);
     const updatedRequest = updateRes.rows[0];
 
     if (updatedRequest) {
       const usersQuery = `SELECT first_name, last_name, phone_number FROM users WHERE chat_id = $1;`;
-      const userInfos = await client.query(usersQuery, [updatedRequest.user_chat_id]);
+      const userInfos = await client.query(usersQuery, [
+        updatedRequest.user_chat_id,
+      ]);
       const user = userInfos.rows[0];
 
-      const reqStatus = language === "uz" ? updatedRequest.status_uz : updatedRequest.status_ru;
+      const reqStatus =
+        language === "uz" ? updatedRequest.status_uz : updatedRequest.status_ru;
 
       // Tilga mos xabar matni
-      const message = language === "uz"
-        ? `
-          Murojaatchi: ${user.first_name} ${user.last_name}
-          Aloqa uchun: ${user.phone_number}
-          Murojaat: ${updatedRequest.request_text}
-          Status: ${reqStatus}
+      const message =
+        language === "uz"
+          ? `
+          ID: ${requestId}
+          ${messagesUz[7]} ${updatedRequest.type}
+          ${messagesUz[5]} ${user.first_name} ${user.last_name}
+          ${messagesUz[6]} ${user.phone_number}
+          ${messagesUz[0]} ${updatedRequest.request_text}
+          ${messagesUz[8]} ${getFormattedDate(updatedRequest.date)}
+          ${messagesUz[1]} ${reqStatus}
         `
-        : `
-          Обращение: ${user.first_name} ${user.last_name}
-          Контакт: ${user.phone_number}
-          Запрос: ${updatedRequest.request_text}
-          Статус: ${reqStatus}
+          : `
+          ID: ${requestId}
+          ${messagesRu[7]} ${updatedRequest.type}
+          ${messagesRu[5]} ${user.first_name} ${user.last_name}
+          ${messagesRu[6]} ${user.phone_number}
+          ${messagesRu[0]} ${updatedRequest.request_text}
+          ${messagesRu[8]} ${getFormattedDate(updatedRequest.date)}
+          ${messagesRu[1]} ${reqStatus}
         `;
 
       await ctx.reply(message, {
@@ -190,11 +206,11 @@ const handleRequestView = async (ctx, requestId) => {
           inline_keyboard: [
             [
               {
-                text: language === "uz" ? "Tugallash" : "Завершить",
+                text: language === "uz" ? "Тугаллаш" : "Завершить",
                 callback_data: `complete_${updatedRequest.id}`,
               },
               {
-                text: language === "uz" ? "Javob yozish" : "Ответить",
+                text: language === "uz" ? "Жавоб ёзиш" : "Ответить",
                 callback_data: `reply_${updatedRequest.id}`,
               },
             ],
@@ -206,27 +222,24 @@ const handleRequestView = async (ctx, requestId) => {
       await ctx.telegram.sendMessage(
         updatedRequest.user_chat_id,
         language === "uz"
-          ? `Sizning quyidagi murojaatingiz ko'rib chiqilmoqda:\nID: ${updatedRequest.id}\nMurojaat: ${updatedRequest.request_text}\nStatus: ${reqStatus}`
-          : `Ваше обращение рассматривается:\nID: ${updatedRequest.id}\nЗапрос: ${updatedRequest.request_text}\nСтатус: ${reqStatus}`
+          ? `Сизнинг қуйидаги мурожаатингиз кўриб чиқилмоқда:\nID: ${updatedRequest.id}\n${messagesUz[0]} ${updatedRequest.request_text}\n${messagesUz[1]} ${reqStatus}`
+          : `Ваше обращение рассматривается:\nID: ${updatedRequest.id}\n${messagesRu[0]} ${updatedRequest.request_text}\n${messagesRu[1]} ${reqStatus}`
       );
     } else {
       await ctx.reply(
-        language === "uz" ? "Murojaat topilmadi." : "Запрос не найден."
+        language === "uz" ? "Мурожаат топилмади." : "Запрос не найден."
       );
     }
   } catch (err) {
     console.error("Murojaatni olishda xatolik:", err);
-    await ctx.reply(
-      language === "uz"
-        ? "Xatolik yuz berdi, qayta urinib ko'ring."
-        : "Произошла ошибка, попробуйте еще раз."
-    );
+    await ctx.reply(language === "uz" ? messagesUz.error : messagesRu.error);
   }
 };
 
+// calbacklarni tinglash-------------------------------------------------------------------------------------------------------------
 bot.on("callback_query", async (ctx) => {
   const callbackData = ctx.callbackQuery.data;
-  
+
   if (callbackData === "uz" || callbackData === "ru") {
     await changeLanguageCommand(ctx); // Tilni tanlash
   } else if (callbackData.startsWith("reply_")) {
@@ -237,95 +250,159 @@ bot.on("callback_query", async (ctx) => {
     const requestId = callbackData.split("_")[1];
     const language = getLanguage(ctx);
     await handleCompleteRequest(ctx, requestId, language);
-  } else if (callbackData.startsWith("view_")) { // `view_` uchun ham tekshiruv qo'shildi
+  } else if (callbackData.startsWith("view_")) {
+    // `view_` uchun ham tekshiruv qo'shildi
     const requestId = callbackData.split("_")[1];
     await handleRequestView(ctx, requestId);
   } else {
     await ctx.answerCbQuery(
-      language === "uz" ? "Kechirasiz, bu savolga javob topilmadi." : "Извините, ответ на этот вопрос не найден."
+      language === "uz"
+        ? "Kechirasiz, bu savolga javob topilmadi."
+        : "Извините, ответ на этот вопрос не найден."
     );
   }
 });
 
-
+// javob yozishni so`rash------------------------------------------------------------------------------------------------------------
 const handleReplyRequest = async (ctx, requestId, language) => {
   await ctx.answerCbQuery(
-    language === "uz" ? "Iltimos, javob yozing:" : "Пожалуйста, напишите ответ:"
+    language === "uz" ? "Илтимос, жавоб ёзинг:" : "Пожалуйста, напишите ответ:"
   );
   ctx.session.replyToRequestId = requestId;
-  await ctx.reply(language === "uz" ? "Javob yozing:" : "Напишите ответ:");
+  await ctx.reply(language === "uz" ? "Жавоб ёзинг:" : "Напишите ответ:");
 };
 
+// requestni tugallash---------------------------------------------------------------------------------------------------------------
 const handleCompleteRequest = async (ctx, requestId, language) => {
   try {
+    // adminni aniqlash
+    const query = `SELECT * FROM users WHERE chat_id = $1;`;
+    const values = [ctx.chat.id];
+    const res = await client.query(query, values);
+    const admin = res.rows[0];
+
+    // murojaatni topish
     const updateStatusQuery = `UPDATE requests SET status_uz = 'Xal qilindi', status_ru = 'Решено' WHERE id = $1 RETURNING *;`;
     const updateRes = await client.query(updateStatusQuery, [requestId]);
     const updatedRequest = updateRes.rows[0];
 
     if (updatedRequest) {
+      // userni aniqlash
+      const usersQuery = `SELECT first_name, last_name, phone_number FROM users WHERE chat_id = $1;`;
+      const userInfos = await client.query(usersQuery, [
+        updatedRequest.user_chat_id,
+      ]);
+      const user = userInfos.rows[0];
+      const groupChatId = "-4541484236";
+
       await ctx.answerCbQuery(
-        language === "uz" ? "Murojaat tugallandi!" : "Запрос завершен!"
+        language === "uz" ? "Мурожаат тугалланди!" : "Запрос завершен!"
       );
       await ctx.editMessageText(
-        language === "uz" ? `Murojaat statusi: Xal qilindi` : `Статус обращения: Решено`
+        language === "uz"
+          ? `Мурожаат статуси: Хал қилинди`
+          : `Статус обращения: Решено`
       );
 
       await ctx.telegram.sendMessage(
         updatedRequest.user_chat_id,
         language === "uz"
-          ? `Sizning quyidagi murojaatingiz yechildi:\nID: ${updatedRequest.id}\nMurojaat: ${updatedRequest.request_text}\nStatus: Xal qilindi`
-          : `Ваш запрос был решен:\nID: ${updatedRequest.id}\nЗапрос: ${updatedRequest.request_text}\nСтатус: Решено`
+          ? `Сизнинг қуйидаги мурожаатингиз ҳолати ${admin.tg_name} томонидан хал қилинди:\nID: ${updatedRequest.id}\nМурожаат: ${updatedRequest.request_text}`
+          : `Ваше следующее обращение было обработано ${admin.tg_name}:\nID: ${updatedRequest.id}\nОбращение: ${updatedRequest.request_text}`
       );
+
+      // guruhga yuboriladigan matn
+      const message = `
+  ID: ${requestId}
+  ${messagesUz[7]} ${updatedRequest.type}
+  ${messagesUz[5]} ${user.first_name} ${user.last_name}
+  ${messagesUz[6]} ${user.phone_number}
+  ${messagesUz[0]} ${updatedRequest.request_text}
+  Юборилган вақт: ${getFormattedDate(updatedRequest.date)}
+  Хал қилинган вақт: ${getFormattedDate()}
+  Админ:${admin.tg_name}
+      `;
+
+      // gruhga admin javobini yuborish
+      await ctx.telegram.sendMessage(groupChatId, message);
     } else {
       await ctx.answerCbQuery(
-        language === "uz" ? "Murojaat topilmadi." : "Запрос не найден."
+        language === "uz" ? "Мурожаат топилмади." : "Запрос не найден."
       );
     }
   } catch (err) {
     console.error("Tugallashda xatolik:", err);
     await ctx.answerCbQuery(
-      language === "uz" ? "Xatolik yuz berdi, qayta urinib ko'ring." : "Произошла ошибка, попробуйте еще раз."
+      language === "uz" ? messagesUz.error : messagesRu.error
     );
   }
 };
 
+// admin javobi
 const handleAdminReply = async (ctx, requestId, replyText, language) => {
   try {
+    const query = `SELECT * FROM users WHERE chat_id = $1;`;
+    const values = [ctx.chat.id];
+    const res = await client.query(query, values);
+    const admin = res.rows[0];
     const requestQuery = `SELECT * FROM requests WHERE id = $1`;
     const requestRes = await client.query(requestQuery, [requestId]);
 
     if (requestRes.rows.length > 0) {
       const request = requestRes.rows[0];
+      const usersQuery = `SELECT first_name, last_name, phone_number FROM users WHERE chat_id = $1;`;
+      const userInfos = await client.query(usersQuery, [request.user_chat_id]);
+      const user = userInfos.rows[0];
+      const groupChatId = "-4541484236";
+      const message = `
+  ID: ${requestId}
+  ${messagesUz[7]} ${request.type}
+  ${messagesUz[5]} ${user.first_name} ${user.last_name}
+  ${messagesUz[6]} ${user.phone_number}
+  ${messagesUz[0]} ${request.request_text}
+  Юборилган вақт: ${getFormattedDate(request.date)}
+  Жавоб берилган вақт: ${getFormattedDate()}
+  Админ:${admin.tg_name}
+  Админ жавоби: ${replyText}
+      `;
+
+      // gruhga admin javobini yuborish
+      await ctx.telegram.sendMessage(groupChatId, message);
+
+      // userga admin javobini yuborish
       await ctx.telegram.sendMessage(
         request.user_chat_id,
         language === "uz"
-          ? `Admin javobi: ${replyText}`
-          : `Ответ администратора: ${replyText}`
+          ? `Админ жавоби: ${replyText} \nАдмин:${admin.tg_name}\n${
+              messagesUz[8]
+            } ${getFormattedDate()}`
+          : `Ответ администратора: ${replyText} \nАдмин:${admin.tg_name}\n${
+              messagesRu[8]
+            } ${getFormattedDate()}`
       );
+      // baseni update qilish
       await client.query(
-        `UPDATE requests SET status_uz = 'Javob berildi', status_ru = 'Ответ дан' WHERE id = $1`,
+        `UPDATE requests SET status_uz = 'Жавоб берилди', status_ru = 'Ответил' WHERE id = $1`,
         [requestId]
       );
 
       ctx.session.replyToRequestId = null;
       await ctx.reply(
-        language === "uz" ? "Javob yuborildi." : "Ответ отправлен.",
+        language === "uz" ? "Жавоб юборилди." : "Ответ отправлен.",
         mainMenu(language)
       );
     } else {
       await ctx.reply(
-        language === "uz" ? "Murojaat topilmadi." : "Запрос не найден."
+        language === "uz" ? "Мурожаат топилмади." : "Запрос не найден."
       );
     }
   } catch (err) {
     console.error("Xatolik javob yuborishda:", err);
-    await ctx.reply(
-      language === "uz" ? "Xatolik yuz berdi, qayta urinib ko'ring." : "Произошла ошибка, попробуйте еще раз."
-    );
+    await ctx.reply(language === "uz" ? messagesUz.error : messagesRu.error);
   }
 };
 
-// main menu
+// main menu-----------------------------------------------------------------------------------------------
 const handleMainMenu = async (ctx, isRegistered, language) => {
   let options;
   if (isRegistered) {
@@ -386,6 +463,7 @@ const handleMainMenu = async (ctx, isRegistered, language) => {
   }
 };
 
+// languagega oid -----------------------------------------------------------------------------------------
 // /lang komandasini qo'shish
 const langCommand = (ctx) => {
   const userId = ctx.from.id;
@@ -414,6 +492,7 @@ const changeLanguageCommand = async (ctx) => {
   await handleMainMenu(ctx, isRegistered, selectedLanguage);
 };
 
+// tanlangan savolga javob topish--------------------------------------------------------------------------
 const handleFAQ = async (ctx, selectedQuestion) => {
   const language = getLanguage(ctx); // Get the user's selected language
 
@@ -461,6 +540,7 @@ const handleFAQ = async (ctx, selectedQuestion) => {
   }
 };
 
+// --------------------------------------------------------------------------------------------------------
 bot.on("text", async (ctx) => {
   const language = getLanguage(ctx);
   var textfaq = ctx.message.text;
@@ -479,7 +559,7 @@ bot.on("text", async (ctx) => {
     const replyText = ctx.message.text;
     const requestId = ctx.session.replyToRequestId;
 
-    await handleAdminReply(ctx, requestId, replyText,language);
+    await handleAdminReply(ctx, requestId, replyText, language);
   } else if (
     textfaq === (language === "uz" ? messagesUz.faq : messagesRu.faq)
   ) {
@@ -490,6 +570,7 @@ bot.on("text", async (ctx) => {
   }
 });
 
+// --------------------------------------------------------------------------------------------------------
 // "Orqaga" tugmasi bosilganda asosiy menyuga qaytish
 bot.hears([messagesUz.back, messagesRu.back], (ctx) => {
   const language = getLanguage(ctx);

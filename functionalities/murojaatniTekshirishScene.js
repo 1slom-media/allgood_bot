@@ -36,7 +36,7 @@ const showMurojaatById = async (ctx) => {
       const statusText =
         language === "uz" ? murojaat.status_uz : murojaat.status_ru;
       await ctx.reply(
-        `ID: ${murojaat.id}\nMurojaat: ${murojaat.request_text}\nStatus: ${statusText}`,
+        `ID: ${murojaat.id}\n${messagesUz[0]} ${murojaat.request_text}\n${messagesUz[1]} ${statusText}`,
         mainMenu(language)
       );
     } else {

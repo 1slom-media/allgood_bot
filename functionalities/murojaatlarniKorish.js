@@ -18,22 +18,22 @@ let murojaatlarniKorish = async (ctx, language) => {
         .map((murojaat) =>
           `ID: ${murojaat.id}\n${
             language === "uz"
-              ? `Murojaat: ${murojaat.request_text}\nStatus: ${murojaat.status_uz}`
-              : `Запрос: ${murojaat.request_text}\nСтатус: ${murojaat.status_ru}`
+              ? `${messagesUz[0]} ${murojaat.request_text}\n${messagesUz[1]} ${murojaat.status_uz}`
+              : `${messagesRu[0]} ${murojaat.request_text}\n${messagesRu[1]} ${murojaat.status_ru}`
           }\n---`
         )
         .join("\n\n");
 
       await ctx.reply(
         language === "uz"
-          ? `Sizning barcha murojaatlaringiz:\n\n${messages}`
-          : `Ваши все запросы:\n\n${messages}`,
+          ? `${messagesUz[2]}:\n\n${messages}`
+          : `${messagesRu[2]}:\n\n${messages}`,
         mainMenu(language)
       );
     } else {
       // Agar foydalanuvchi hech qanday murojaat qilmagan bo'lsa
       await ctx.reply(
-        language === "uz" ? "Sizda hech qanday murojaat yo'q." : "У вас нет запросов.",
+        language === "uz" ? `${messagesUz[3]}` : `${messagesRu[3]}`,
         mainMenu(language)
       );
     }
