@@ -10,7 +10,7 @@ import murojaatniTekshirishScene from "./functionalities/murojaatniTekshirishSce
 import getFormattedDate from "./utils/formatedDate.js";
 
 // Bot tokenini kiritish
-const token = "5903395341:AAHFIlLNmQ6Z2wceX5ktmmiBvKNmn9hVyV8";
+const token = "7799377367:AAECUpdjTkJnG_KTvCIMI7sT8XC807bjUDA";
 const bot = new Telegraf(token);
 
 // bazani tinglash va notif yuborish--------------------------------------------------------------------------------------------------
@@ -183,48 +183,71 @@ const handleRequestView = async (ctx, requestId) => {
       const message =
         language === "uz"
           ? `
-          ID: ${requestId}
-          ${messagesUz[7]} ${updatedRequest.type}
-          ${messagesUz[5]} ${user.first_name} ${user.last_name}
-          ${messagesUz[6]} ${user.phone_number}
-          ${messagesUz[0]} ${updatedRequest.request_text}
-          ${messagesUz[8]} ${getFormattedDate(updatedRequest.date)}
-          ${messagesUz[1]} ${reqStatus}
+    📩 <b>${messagesUz[4]}</b>
+    🆔 <b>ID:</b> ${requestId}
+    📌 <b>${messagesUz[7]}:</b> ${updatedRequest.type}
+    🙋‍♂️ <b>${messagesUz[5]}:</b> ${user.first_name} ${user.last_name}
+    📞 <b>${messagesUz[6]}:</b> ${user.phone_number}
+    
+    📝 <b>${messagesUz[0]}:</b>
+    ${updatedRequest.request_text}
+    
+    🕒 <b>${messagesUz[8]}:</b> ${getFormattedDate(updatedRequest.date)}
+    ✅ <b>${messagesUz[1]}:</b> ${reqStatus}
         `
           : `
-          ID: ${requestId}
-          ${messagesRu[7]} ${updatedRequest.type}
-          ${messagesRu[5]} ${user.first_name} ${user.last_name}
-          ${messagesRu[6]} ${user.phone_number}
-          ${messagesRu[0]} ${updatedRequest.request_text}
-          ${messagesRu[8]} ${getFormattedDate(updatedRequest.date)}
-          ${messagesRu[1]} ${reqStatus}
+    📩 <b>${messagesRu[4]}</b>
+    🆔 <b>ID:</b> ${requestId}
+    📌 <b>${messagesRu[7]}:</b> ${updatedRequest.type}
+    🙋‍♂️ <b>${messagesRu[5]}:</b> ${user.first_name} ${user.last_name}
+    📞 <b>${messagesRu[6]}:</b> ${user.phone_number}
+    
+    📝 <b>${messagesRu[0]}:</b>
+    ${updatedRequest.request_text}
+    
+    🕒 <b>${messagesRu[8]}:</b> ${getFormattedDate(updatedRequest.date)}
+    ✅ <b>${messagesRu[1]}:</b> ${reqStatus}
         `;
 
-      await ctx.reply(message, {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: language === "uz" ? "Тугаллаш" : "Завершить",
-                callback_data: `complete_${updatedRequest.id}`,
-              },
-              {
-                text: language === "uz" ? "Жавоб ёзиш" : "Ответить",
-                callback_data: `reply_${updatedRequest.id}`,
-              },
+        await ctx.reply(message, {
+          parse_mode: "HTML",  // HTML formatini qo‘shdik
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: language === "uz" ? "Тугаллаш" : "Завершить",
+                  callback_data: `complete_${updatedRequest.id}`,
+                },
+                {
+                  text: language === "uz" ? "Жавоб ёзиш" : "Ответить",
+                  callback_data: `reply_${updatedRequest.id}`,
+                },
+              ],
             ],
-          ],
-        },
-      });
+          },
+        });
+        
 
       // Foydalanuvchiga murojaat haqida xabar yuborish
       await ctx.telegram.sendMessage(
         updatedRequest.user_chat_id,
         language === "uz"
-          ? `Сизнинг қуйидаги мурожаатингиз кўриб чиқилмоқда:\nID: ${updatedRequest.id}\n${messagesUz[0]} ${updatedRequest.request_text}\n${messagesUz[1]} ${reqStatus}`
-          : `Ваше обращение рассматривается:\nID: ${updatedRequest.id}\n${messagesRu[0]} ${updatedRequest.request_text}\n${messagesRu[1]} ${reqStatus}`
-      );
+          ? `
+      <b>Сизнинг қуйидаги мурожаатингиз кўриб чиқилмоқда:</b>
+      📩 <b>${messagesUz[4]}</b>
+      🆔 <b>ID:</b> ${updatedRequest.id}
+      📝 <b>${messagesUz[0]}:</b> ${updatedRequest.request_text}
+      ✅ <b>${messagesUz[1]}:</b> ${reqStatus}
+          `
+          : `
+          <b>Ваше обращение рассматривается:</b>
+      📩 <b>${messagesRu[4]}</b>
+      🆔 <b>ID:</b> ${updatedRequest.id}
+      📝 <b>${messagesRu[0]}:</b> ${updatedRequest.request_text}
+      ✅ <b>${messagesRu[1]}:</b> ${reqStatus}
+          `,
+        { parse_mode: "HTML" }
+      );      
     } else {
       await ctx.reply(
         language === "uz" ? "Мурожаат топилмади." : "Запрос не найден."
@@ -293,7 +316,7 @@ const handleCompleteRequest = async (ctx, requestId, language) => {
         updatedRequest.user_chat_id,
       ]);
       const user = userInfos.rows[0];
-      const groupChatId = "-4541484236";
+      const groupChatId = "-1002294914883";
 
       await ctx.answerCbQuery(
         language === "uz" ? "Мурожаат тугалланди!" : "Запрос завершен!"
@@ -307,24 +330,36 @@ const handleCompleteRequest = async (ctx, requestId, language) => {
       await ctx.telegram.sendMessage(
         updatedRequest.user_chat_id,
         language === "uz"
-          ? `Сизнинг қуйидаги мурожаатингиз ҳолати ${admin.tg_name} томонидан хал қилинди:\nID: ${updatedRequest.id}\nМурожаат: ${updatedRequest.request_text}`
-          : `Ваше следующее обращение было обработано ${admin.tg_name}:\nID: ${updatedRequest.id}\nОбращение: ${updatedRequest.request_text}`
+          ? `
+      📩 <b>${messagesUz[4]}</b>
+      🆔 <b>ID:</b> ${updatedRequest.id}
+      📝 <b>${messagesUz[0]}:</b> ${updatedRequest.request_text}
+      ✅ <b>${messagesUz[1]}:</b> холати ${admin.tg_name} томонидан хал қилинди
+          `
+          : `
+      📩 <b>${messagesRu[4]}</b>
+      🆔 <b>ID:</b> ${updatedRequest.id}
+      📝 <b>${messagesRu[0]}:</b> ${updatedRequest.request_text}
+      ✅ <b>${messagesRu[1]}:</b> было обработано ${admin.tg_name}
+          `,
+        { parse_mode: "HTML" }
       );
+      
 
       // guruhga yuboriladigan matn
       const message = `
-  ID: ${requestId}
-  ${messagesUz[7]} ${updatedRequest.type}
-  ${messagesUz[5]} ${user.first_name} ${user.last_name}
-  ${messagesUz[6]} ${user.phone_number}
-  ${messagesUz[0]} ${updatedRequest.request_text}
-  Юборилган вақт: ${getFormattedDate(updatedRequest.date)}
-  Хал қилинган вақт: ${getFormattedDate()}
-  Админ:${admin.tg_name}
+      📩 <b>${messagesUz[4]}</b>
+      🆔 <b>ID:</b> ${requestId}
+      📌 <b>${messagesUz[7]}:</b> ${updatedRequest.type}
+      🙋‍♂️ <b>${messagesUz[5]}:</b> ${user.first_name} ${user.last_name}
+      📞 <b>${messagesUz[6]}:</b> ${user.phone_number}
+      📝 <b>${messagesUz[0]}:</b> ${updatedRequest.request_text}
+      🕒 <b>Юборилган вақт:</b> ${getFormattedDate(updatedRequest.date)}
+      ✅ <b>Хал қилинган вақт:</b> ${getFormattedDate()}
+      👨‍💻 <b>Админ:</b> ${admin.tg_name}
       `;
-
-      // gruhga admin javobini yuborish
-      await ctx.telegram.sendMessage(groupChatId, message);
+      
+      await ctx.telegram.sendMessage(groupChatId, message, { parse_mode: "HTML" });      
     } else {
       await ctx.answerCbQuery(
         language === "uz" ? "Мурожаат топилмади." : "Запрос не найден."
@@ -353,32 +388,39 @@ const handleAdminReply = async (ctx, requestId, replyText, language) => {
       const usersQuery = `SELECT first_name, last_name, phone_number FROM users WHERE chat_id = $1;`;
       const userInfos = await client.query(usersQuery, [request.user_chat_id]);
       const user = userInfos.rows[0];
-      const groupChatId = "-4541484236";
-      const message = `
-  ID: ${requestId}
-  ${messagesUz[7]} ${request.type}
-  ${messagesUz[5]} ${user.first_name} ${user.last_name}
-  ${messagesUz[6]} ${user.phone_number}
-  ${messagesUz[0]} ${request.request_text}
-  Юборилган вақт: ${getFormattedDate(request.date)}
-  Жавоб берилган вақт: ${getFormattedDate()}
-  Админ:${admin.tg_name}
-  Админ жавоби: ${replyText}
-      `;
-
+      const groupChatId = "-1002294914883";
       // gruhga admin javobini yuborish
-      await ctx.telegram.sendMessage(groupChatId, message);
+      const message = `
+🆔 <b>ID:</b> ${requestId}
+📌 <b>${messagesUz[7]}:</b> ${request.type}
+🙋‍♂️ <b>${messagesUz[5]}:</b> ${user.first_name} ${user.last_name}
+📞 <b>${messagesUz[6]}:</b> ${user.phone_number}
+
+📝 <b>${messagesUz[0]}:</b>
+${request.request_text}
+
+🕒 <b>Юборилган вақт:</b> ${getFormattedDate(request.date)}
+🕒 <b>Жавоб берилган вақт:</b> ${getFormattedDate()}
+
+👮‍♂️ <b>Админ:</b> ${admin.tg_name}
+💬 <b>Админ жавоби:</b>
+"${replyText}"
+`;
+
+      await ctx.telegram.sendMessage(groupChatId, message, {
+        parse_mode: "HTML",
+      });
 
       // userga admin javobini yuborish
       await ctx.telegram.sendMessage(
         request.user_chat_id,
         language === "uz"
-          ? `Админ жавоби: ${replyText} \nАдмин:${admin.tg_name}\n${
+          ? `💬Админ жавоби: ${replyText} \n👮‍♂️Админ:${admin.tg_name}\n🕒${
               messagesUz[8]
             } ${getFormattedDate()}`
-          : `Ответ администратора: ${replyText} \nАдмин:${admin.tg_name}\n${
-              messagesRu[8]
-            } ${getFormattedDate()}`
+          : `💬Ответ администратора: ${replyText} \n👮‍♂️Админ:${
+              admin.tg_name
+            }\n🕒${messagesRu[8]} ${getFormattedDate()}`
       );
       // baseni update qilish
       await client.query(

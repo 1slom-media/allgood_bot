@@ -94,31 +94,38 @@ const saveRequest = async (ctx) => {
     );
 
     // Murojaatni guruhga yuborish
-    const groupChatId = "-4541484236";
+    const groupChatId = "-1002294914883";
 
     // userga yuboriladigan message
     const message =
-      language === "uz"
-        ? `
-  ${messagesUz[4]}
-  ID: ${requestId}
-  ${messagesUz[7]} ${type}
-  ${messagesUz[5]} ${first_name} ${last_name}
-  ${messagesUz[6]} ${phone_number}
-  ${messagesUz[0]} ${requestText}
-  ${messagesUz[8]} ${getFormattedDate()}
-  ${messagesUz[1]} юборилган
-      `
-        : `
-  ${messagesRu[4]}
-  ID: ${requestId}
-  ${messagesRu[7]} ${type}
-  ${messagesRu[5]} ${first_name} ${last_name}
-  ${messagesRu[6]} ${phone_number}
-  ${messagesRu[0]} ${requestText}
-  ${messagesRu[8]} ${getFormattedDate()}
-  ${messagesRu[1]} отправил
-      `;
+  language === "uz"
+    ? `
+📩 <b>${messagesUz[4]}</b>
+🆔 <b>ID:</b> ${requestId}
+📌 <b>${messagesUz[7]}:</b> ${type}
+🙋‍♂️ <b>${messagesUz[5]}:</b> ${first_name} ${last_name}
+📞 <b>${messagesUz[6]}:</b> ${phone_number}
+
+📝 <b>${messagesUz[0]}:</b>
+${requestText}
+
+🕒 <b>${messagesUz[8]}:</b> ${getFormattedDate()}
+✅ <b>${messagesUz[1]}:</b> юборилган
+    `
+    : `
+📩 <b>${messagesRu[4]}</b>
+🆔 <b>ID:</b> ${requestId}
+📌 <b>${messagesRu[7]}:</b> ${type}
+🙋‍♂️ <b>${messagesRu[5]}:</b> ${first_name} ${last_name}
+📞 <b>${messagesRu[6]}:</b> ${phone_number}
+
+📝 <b>${messagesRu[0]}:</b>
+${requestText}
+
+🕒 <b>${messagesRu[8]}:</b> ${getFormattedDate()}
+✅ <b>${messagesRu[1]}:</b> отправил
+    `;
+
     // Inline tugma yaratish
     const inlineKeyboard = Markup.inlineKeyboard([
       [
@@ -132,8 +139,16 @@ const saveRequest = async (ctx) => {
     ]);
 
     // Guruhga xabarni inline tugma bilan yuborish
-    await ctx.reply(message, mainMenu(language));
-    await ctx.telegram.sendMessage(groupChatId, message, inlineKeyboard);
+    await ctx.reply(message, {
+      parse_mode: "HTML",
+      ...mainMenu(language),
+    });
+    
+    await ctx.telegram.sendMessage(groupChatId, message, {
+      parse_mode: "HTML",
+      reply_markup: inlineKeyboard.reply_markup,
+    });
+    
   } catch (err) {
     console.error("Murojaatni saqlashda xatolik:", err);
     ctx.reply(
