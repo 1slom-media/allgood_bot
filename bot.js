@@ -10,7 +10,7 @@ import murojaatniTekshirishScene from "./functionalities/murojaatniTekshirishSce
 import getFormattedDate from "./utils/formatedDate.js";
 
 // Bot tokenini kiritish
-const token = "977660464:AAH6PswsH37TrYwzzGTP9Vj5PwyzwIMPgII";
+const token = "5903395341:AAHFIlLNmQ6Z2wceX5ktmmiBvKNmn9hVyV8";
 const bot = new Telegraf(token);
 
 // bazani tinglash va notif yuborish--------------------------------------------------------------------------------------------------

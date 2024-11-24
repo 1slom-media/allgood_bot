@@ -124,7 +124,7 @@ const saveRequest = async (ctx) => {
       [
         {
           text: `${messagesUz.viewReq}`,
-          url: `https://t.me/test_allgod_bot?start=view_${requestId}`,
+          url: `https://t.me/allgoodnasiya_bot?start=view_${requestId}`,
         },
       ],
 

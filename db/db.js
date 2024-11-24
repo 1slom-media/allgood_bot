@@ -4,7 +4,7 @@ connection
 const client = new Client.Client({
   host: "localhost",
   user: "postgres",
-  password: "Postgres",
+  password: "postgres",
   database: "allgood_bot",
   port: 5432,
 });

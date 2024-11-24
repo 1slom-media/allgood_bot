@@ -36,11 +36,11 @@ CREATE TABLE merchants_bot(
 INSERT INTO users(first_name, last_name, phone_number, tg_name, chat_id, role)
 VALUES
 (
-    'islom',
-    'tagayev',
-    '998200053001',
-    '@Islombek_TT',
-    '7690235728',
+    'Shukurjonov',
+    'Muhammad',
+    '998940163313',
+    '@mshukurjonov',
+    '225122655',
     'admin'
 );
 
